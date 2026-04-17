@@ -78,13 +78,6 @@ export default function Home() {
     if (window.innerWidth <= 768) setSidebarOpen(false);
   };
 
-  const deleteChat = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setChats(prev => prev.filter(c => c.id !== id));
-    if (currentChatId === id) {
-      setCurrentChatId(null);
-    }
-  };
 
   const handleInitialGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
