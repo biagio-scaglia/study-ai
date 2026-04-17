@@ -542,7 +542,11 @@ Basandoti su questi dati, genera il materiale di studio richiesto in modo comple
                       
                       <div className={styles.messageContent}>
                         {msg.content === '' && loading && idx === currentChat.messages.length - 1 ? (
-                          <span style={{opacity: 0.5}} className={styles.spinner}>...</span>
+                          <div className={styles.skeletonContainer}>
+                            <div className={styles.skeletonLine} style={{width: '90%'}}></div>
+                            <div className={styles.skeletonLine} style={{width: '75%'}}></div>
+                            <div className={styles.skeletonLine} style={{width: '40%'}}></div>
+                          </div>
                         ) : (
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>
                             {msg.content}
