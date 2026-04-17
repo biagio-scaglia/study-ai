@@ -38,6 +38,7 @@ export default function Home() {
   const [pdfContext, setPdfContext] = useState<string>('');
   const [pdfFileName, setPdfFileName] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [llmProvider, setLlmProvider] = useState<string | null>(null);
 
   const [chatInput, setChatInput] = useState('');
   
@@ -157,6 +158,27 @@ Basandoti su questi dati, genera il materiale di studio richiesto in modo comple
     setPdfFileName(null);
   };
 
+  const deleteChat = async (chatId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm('Sei sicuro di voler eliminare questa chat?')) return;
+
+    try {
+      const resp = await fetch('/api/chats/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId })
+      });
+      if (resp.ok) {
+        if (currentChatId === chatId) {
+          setCurrentChatId('new');
+        }
+        fetchChats();
+      }
+    } catch (e) {
+      console.error("Failed to delete chat");
+    }
+  };
+
   const handleFollowUp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!chatInput.trim() || !currentChatId || !currentChat) return;
@@ -192,6 +214,9 @@ Basandoti su questi dati, genera il materiale di studio richiesto in modo comple
           topic: topic // Use for identifying new chat
         }),
       });
+
+      const provider = response.headers.get('X-LLM-Provider');
+      if (provider) setLlmProvider(provider);
 
       if (!response.body) throw new Error('No readable body stream');
 
@@ -480,8 +505,16 @@ Basandoti su questi dati, genera il materiale di studio richiesto in modo comple
                 {/* Active File Banner */}
                 {pdfFileName && (
                   <div className={styles.activeFileBanner}>
-                    <FileText size={16} />
-                    <span>Utilizzando il contesto di: <strong>{pdfFileName}</strong></span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                      <FileText size={16} />
+                      <span>Utilizzando il contesto di: <strong>{pdfFileName}</strong></span>
+                    </div>
+                    {llmProvider && (
+                      <div className={styles.providerBadge}>
+                        <Sparkles size={12} />
+                        <span>Powered by {llmProvider}</span>
+                      </div>
+                    )}
                   </div>
                 )}
 

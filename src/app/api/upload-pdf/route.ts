@@ -3,7 +3,7 @@ import { convert } from '@opendataloader/pdf';
 import path from 'path';
 import fs from 'fs/promises';
 import { v4 as uuidv4 } from 'uuid';
-import { prisma } from '@/lib/prisma';
+import db from '@/lib/db';
 
 export async function POST(req: Request) {
   try {
@@ -43,13 +43,12 @@ export async function POST(req: Request) {
       throw new Error('Could not find extracted markdown file');
     }
 
-    // Persist Document in DB
-    const dbDoc = await prisma.document.create({
-      data: {
-        fileName: file.name,
-        content: markdown
-      }
-    });
+    // Persist Document in DuckDB
+    const documentId = uuidv4();
+    await db.run(
+      'INSERT INTO documents (id, fileName, content) VALUES (?, ?, ?)',
+      [documentId, file.name, markdown]
+    );
 
     // Cleanup temp files
     await fs.rm(tempDir, { recursive: true, force: true });
@@ -58,7 +57,7 @@ export async function POST(req: Request) {
       success: true, 
       markdown: markdown,
       fileName: file.name,
-      documentId: dbDoc.id
+      documentId: documentId
     });
 
   } catch (error: any) {

@@ -10,11 +10,10 @@
   },
   "dependencies": {
     "@opendataloader/pdf": "^2.2.1",
-    "@prisma/client": "^7.7.0",
+    "duckdb": "^1.4.4",
     "html2pdf.js": "^0.14.0",
     "lucide-react": "^1.7.0",
     "next": "16.2.2",
-    "prisma": "^7.7.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-markdown": "^10.1.0",
@@ -22,6 +21,7 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

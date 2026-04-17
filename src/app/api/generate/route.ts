@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import db from '@/lib/db';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req: Request) {
   try {
@@ -24,13 +25,13 @@ export async function POST(req: Request) {
     // Try llama.cpp first (port 8080) then fallback to Ollama (11434)
     let baseUrl = 'http://localhost:8080/v1/chat/completions';
     let payload: any = {
-      model: 'gpt-3.5-turbo', // llama.cpp ignores this mostly
+      model: 'gpt-3.5-turbo', 
       messages: [systemPrompt, ...messages],
       stream: true,
     };
 
     let response;
-    let isLlamaCpp = true;
+    let provider = 'llama.cpp (Port 8080)';
 
     try {
       response = await fetch(baseUrl, {
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
       if (!response.ok) throw new Error();
     } catch (e) {
       // Fallback to Ollama
-      isLlamaCpp = false;
+      provider = 'Ollama (Llama3)';
       baseUrl = 'http://localhost:11434/api/chat';
       payload = {
         model: 'llama3',
@@ -60,40 +61,43 @@ export async function POST(req: Request) {
       throw new Error(`LLM Error: ${response.statusText}`);
     }
 
-    // Capture user message in DB if chatId exists
+    // Capture user message in DuckDB if chatId exists
     if (chatId) {
       const lastUserMessage = messages[messages.length - 1];
       if (lastUserMessage && lastUserMessage.role === 'user') {
-        await prisma.message.create({
-          data: {
-            role: 'user',
-            content: lastUserMessage.content,
-            chatId: chatId,
-          }
-        });
+        const msgId = uuidv4();
+        await db.run(
+          'INSERT INTO messages (id, role, content, chatId) VALUES (?, ?, ?, ?)',
+          [msgId, 'user', lastUserMessage.content, chatId]
+        );
       }
     } else if (topic) {
-        // Create new chat if topic provided
-        const newChat = await prisma.chat.create({
-            data: {
-                title: topic,
-                contextText: context,
-                messages: {
-                    create: messages.map(m => ({ role: m.role, content: m.content }))
-                }
-            }
-        });
-        // We might want to return the new chatId too, but for simplicity in streaming, we just continue
+        // Create new chat in DuckDB
+        const newChatId = uuidv4();
+        await db.run(
+          'INSERT INTO chats (id, title, contextText) VALUES (?, ?, ?)',
+          [newChatId, topic, context || null]
+        );
+        
+        // Insert initial messages
+        for (const msg of messages) {
+          const mId = uuidv4();
+          await db.run(
+            'INSERT INTO messages (id, role, content, chatId) VALUES (?, ?, ?, ?)',
+            [mId, msg.role, msg.content, newChatId]
+          );
+        }
     }
 
     return new Response(response.body, {
       headers: {
         'Content-Type': 'text/event-stream',
+        'X-LLM-Provider': provider
       },
     });
 
   } catch (error: any) {
-    console.error('Error generating notes:', error);
+    console.error('Error generating notes with DuckDB:', error);
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

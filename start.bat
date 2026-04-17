@@ -1,7 +1,3 @@
-@echo off
-set "JAVA_PATH=C:\Program Files\Common Files\Oracle\Java\javapath"
-set "PATH=%JAVA_PATH%;%PATH%"
-
 echo [INFO] Verificando Java...
 java -version
 if %errorlevel% neq 0 (
@@ -10,6 +6,10 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
-echo [INFO] Avvio di Study Notes AI in corso...
+echo [INFO] Pulizia file temporanei...
+if exist tmp rmdir /s /q tmp
+mkdir tmp
+
+echo [INFO] Avvio di Study Notes AI con DuckDB...
 npm run dev
 pause
