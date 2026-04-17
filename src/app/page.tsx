@@ -41,6 +41,7 @@ export default function Home() {
   const [llmProvider, setLlmProvider] = useState<string | null>(null);
 
   const [chatInput, setChatInput] = useState('');
+  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   
   const bottomRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -65,10 +66,17 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (autoScrollEnabled && bottomRef.current) {
+      // Use instant scroll during loading to avoid fighting with user scroll
+      bottomRef.current.scrollIntoView({ behavior: loading ? 'auto' : 'smooth' });
     }
-  }, [chats, loading]);
+  }, [chats, loading, autoScrollEnabled]);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    const isBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 100;
+    setAutoScrollEnabled(isBottom);
+  };
 
   const currentChat = chats.find(c => c.id === currentChatId);
 
@@ -493,7 +501,11 @@ Basandoti su questi dati, genera il materiale di studio richiesto in modo comple
 
         {currentChat && (
           <>
-            <div className={styles.chatArea} ref={chatContainerRef}>
+            <div 
+              className={styles.chatArea} 
+              ref={chatContainerRef}
+              onScroll={handleScroll}
+            >
               <div className={styles.messagesContainer}>
                 {/* Active File Banner */}
                 {pdfFileName && (
